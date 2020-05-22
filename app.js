@@ -14,7 +14,8 @@ app.use(express.static("public"));
 
 const options = {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
+  useFindAndModify: false
 };
 
 mongoose.connect("mongodb://localhost:27017/todoListDB", options);
@@ -70,6 +71,19 @@ app.post("/", function (req, res) {
   });
 
   item.save();
+  
+  res.redirect("/");
+});
+
+app.post("/delete", function (req, res) {
+
+  const checkedItem = req.body.checkbox;
+
+  Item.findOneAndRemove(checkedItem, (err) => {
+    if (!err) {
+      console.log("Successfully deleted checked item!");
+    }
+  });
   
   res.redirect("/");
 });
