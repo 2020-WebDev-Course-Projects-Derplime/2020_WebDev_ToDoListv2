@@ -2,6 +2,7 @@
 
 const express = require("express");
 const mongoose = require("mongoose");
+const _ = require("lodash");
 
 const app = express();
 
@@ -71,19 +72,21 @@ app.get("/", function (req, res) {
 });
 
 app.get("/:listName", function (req, res) {
+
+  const customListName = _.capitalize(req.params.listName);
   List.findOne({
-    name: req.params.listName
+    name: customListName
   }, (err, foundList) => {
     if (!err) {
       if (!foundList) {
         // create new list
         const list = new List({
-          name: req.params.listName,
+          name: customListName,
           items: defaultItems
         });
 
         list.save();
-        res.redirect(`/${req.params.listName}`);
+        res.redirect(`/${customListName}`);
       } else {
         // show existing list
         res.render("list", {
@@ -123,14 +126,31 @@ app.post("/", function (req, res) {
 app.post("/delete", function (req, res) {
 
   const checkedItem = req.body.checkbox;
+  const listName = req.body.listName;
 
-  Item.findOneAndRemove(checkedItem, (err) => {
-    if (!err) {
-      console.log("Successfully deleted checked item!");
+  if (listName === "Today") {
+    Item.findOneAndRemove(checkedItem, (err) => {
+      if (!err) {
+        console.log("Successfully deleted checked item!");
+      }
+    });
+  
+    res.redirect("/");
+  } else {
+    const queryOption = {
+      $pull: {
+        items: {
+          _id: checkedItem
+        }
+      }
     }
-  });
-
-  res.redirect("/");
+    // Remove element from an array of a document
+    List.findOneAndUpdate({ name: listName }, queryOption, (err, foundList) => {
+      if (!err) {
+        res.redirect(`/${listName}`);
+      }
+    });
+  }
 });
 
 app.get("/about", function (req, res) {
